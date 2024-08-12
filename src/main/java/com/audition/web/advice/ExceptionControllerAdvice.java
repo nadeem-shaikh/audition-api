@@ -18,41 +18,76 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 
+/**
+ * Controller advice for handling exceptions across the application.
+ *
+ * @author Nadeem Shaikh
+ */
 @ControllerAdvice
 public class ExceptionControllerAdvice extends ResponseEntityExceptionHandler {
-
+    
     public static final String DEFAULT_TITLE = "API Error Occurred";
     private static final Logger LOG = LoggerFactory.getLogger(ExceptionControllerAdvice.class);
     private static final String ERROR_MESSAGE = " Error Code from Exception could not be mapped to a valid HttpStatus Code - ";
     private static final String DEFAULT_MESSAGE = "API Error occurred. Please contact support or administrator.";
 
     @Autowired
-    private AuditionLogger logger;
+    private transient AuditionLogger logger;
 
+    /**
+     * Handles HttpClientErrorException.
+     *
+     * @param e The HttpClientErrorException
+     * @return A ProblemDetail object representing the error
+     * @author Nadeem Shaikh
+     */
     @ExceptionHandler(HttpClientErrorException.class)
-    ProblemDetail handleHttpClientException(final HttpClientErrorException e) {
+    public ProblemDetail handleHttpClientException(final HttpClientErrorException e) {
         return createProblemDetail(e, e.getStatusCode());
 
     }
 
 
+    /**
+     * Handles general exceptions.
+     *
+     * @param e The Exception
+     * @return A ProblemDetail object representing the error
+     * @author Nadeem Shaikh
+     */
     @ExceptionHandler(Exception.class)
-    ProblemDetail handleMainException(final Exception e) {
-        // TODO Add handling for Exception
+    @SuppressWarnings("PMD.GuardLogStatement")
+    public ProblemDetail handleMainException(final Exception e) {
+        logger.logErrorWithException(LOG, "Unhandled exception occurred", e);
         final HttpStatusCode status = getHttpStatusCodeFromException(e);
         return createProblemDetail(e, status);
 
     }
 
+    /**
+     * Handles SystemException.
+     *
+     * @param e The SystemException
+     * @return A ProblemDetail object representing the error
+     * @author Nadeem Shaikh
+     */
     @ExceptionHandler(SystemException.class)
-    ProblemDetail handleSystemException(final SystemException e) {
-        // TODO `Add Handling for SystemException
+    @SuppressWarnings("PMD.GuardLogStatement")
+    public ProblemDetail handleSystemException(final SystemException e) {
+        logger.error(LOG, "SystemException occurred: {}" + e.getMessage());
         final HttpStatusCode status = getHttpStatusCodeFromSystemException(e);
         return createProblemDetail(e, status);
-
     }
 
 
+    /**
+     * Creates a ProblemDetail object from an exception and status code.
+     *
+     * @param exception The Exception
+     * @param statusCode The HttpStatusCode
+     * @return A ProblemDetail object
+     * @author Nadeem Shaikh
+     */
     private ProblemDetail createProblemDetail(final Exception exception,
         final HttpStatusCode statusCode) {
         final ProblemDetail problemDetail = ProblemDetail.forStatus(statusCode);
@@ -65,6 +100,13 @@ public class ExceptionControllerAdvice extends ResponseEntityExceptionHandler {
         return problemDetail;
     }
 
+    /**
+     * Extracts a message from an exception.
+     *
+     * @param exception The Exception
+     * @return The extracted message or a default message
+     * @author Nadeem Shaikh
+     */
     private String getMessageFromException(final Exception exception) {
         if (StringUtils.isNotBlank(exception.getMessage())) {
             return exception.getMessage();
@@ -72,7 +114,14 @@ public class ExceptionControllerAdvice extends ResponseEntityExceptionHandler {
         return DEFAULT_MESSAGE;
     }
 
-    private HttpStatusCode getHttpStatusCodeFromSystemException(final SystemException exception) {
+    /**
+     * Determines the HttpStatusCode from a SystemException.
+     *
+     * @param exception The SystemException
+     * @return The corresponding HttpStatusCode
+     * @author Nadeem Shaikh
+     */
+    public HttpStatusCode getHttpStatusCodeFromSystemException(final SystemException exception) {
         try {
             return HttpStatusCode.valueOf(exception.getStatusCode());
         } catch (final IllegalArgumentException iae) {
@@ -81,7 +130,14 @@ public class ExceptionControllerAdvice extends ResponseEntityExceptionHandler {
         }
     }
 
-    private HttpStatusCode getHttpStatusCodeFromException(final Exception exception) {
+    /**
+     * Determines the HttpStatusCode from a general Exception.
+     *
+     * @param exception The Exception
+     * @return The corresponding HttpStatusCode
+     * @author Nadeem Shaikh
+     */
+    public HttpStatusCode getHttpStatusCodeFromException(final Exception exception) {
         if (exception instanceof HttpClientErrorException) {
             return ((HttpClientErrorException) exception).getStatusCode();
         } else if (exception instanceof HttpRequestMethodNotSupportedException) {
@@ -90,6 +146,3 @@ public class ExceptionControllerAdvice extends ResponseEntityExceptionHandler {
         return INTERNAL_SERVER_ERROR;
     }
 }
-
-
-
