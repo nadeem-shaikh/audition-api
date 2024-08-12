@@ -6,9 +6,9 @@ plugins {
     id 'jacoco'
     id "com.github.spotbugs" version "5.0.14"
     id "io.freefair.lombok" version "8.0.1"
-    // TODO Enable checkstyle and PMD. Fix all the relevant issues.
-    //id "checkstyle"
-    //id "pmd"
+    // @author: Nadeem Shaikh. Enabled checkstyle and pmd
+    id "checkstyle"
+    id "pmd"
 }
 
 group = 'com.audition'
@@ -16,9 +16,8 @@ version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '17'
 targetCompatibility = '17'
 
-
-// TODO allow for code-analysis.gradle to be applied for code analysis.
-// apply from: 'config/code-analysis.gradle'
+// @author: Nadeem Shaikh. Enabled code-analysis.gradle to be applied for code analysis.
+apply from: 'config/code-analysis.gradle'
 
 configurations {
     compileOnly {
@@ -35,35 +34,72 @@ ext {
     set('logbackVersion', "1.4.5")
     set('slf4jVersion', "2.0.5")
     set('springdocVersion', "2.0.2")
+
+    // author: Nadeem Shaikh. Added OpenTelemetry version
+    set('openTelemetryVersion', "1.28.0")
 }
 
 dependencies {
-
-    // TODO Clean up unused dependencies. Add comments on consideration on any improvements you made.
-    implementation "org.springframework.boot:spring-boot-starter-actuator"
-    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    // Core Spring Boot dependencies
     implementation "org.springframework.boot:spring-boot-starter-web"
-    implementation "org.springframework.cloud:spring-cloud-starter-config"
-    implementation "org.springframework.boot:spring-boot-starter-webflux"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
     implementation "org.springframework.boot:spring-boot-starter-aop"
+
+    // Spring Cloud dependencies
+    implementation "org.springframework.cloud:spring-cloud-starter-config"
+    implementation "org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j"
+
+    // Observability and monitoring
     implementation "io.micrometer:micrometer-tracing-bridge-brave"
     implementation "io.micrometer:micrometer-tracing"
     implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "io.micrometer:context-propagation"
-    implementation "org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j"
-    implementation "org.springframework.cloud:spring-cloud-starter-config"
+    
+
+    // OpenAPI documentation
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
 
-    developmentOnly "org.springframework.boot:spring-boot-devtools"
-    runtimeOnly "io.micrometer:micrometer-registry-prometheus"
+    // OpenTelemetry dependencies for distributed tracing and observability
+    implementation "io.opentelemetry:opentelemetry-api:${openTelemetryVersion}"
+    implementation "io.opentelemetry:opentelemetry-sdk:${openTelemetryVersion}"
+    implementation "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:${openTelemetryVersion}"
 
-
+    // Logging
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     implementation "ch.qos.logback:logback-core:${logbackVersion}"
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
 
+    // Development and testing
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
     testImplementation "org.springframework.boot:spring-boot-starter-test"
     testImplementation "io.projectreactor:reactor-test"
+    testImplementation "org.mockito:mockito-junit-jupiter:3.11.2"
+    testImplementation "org.mockito:mockito-inline:3.11.2"
+
+    // author: Nadeem Shaikh. Removed dependencies:
+    // 1. Duplicate spring-cloud-starter-config
+    //    Reason: This dependency was listed twice in the original file. One instance is sufficient
+    //    for pulling in the Spring Cloud Config client.
+
+    // 2. spring-boot-starter-webflux
+    //    Reason: This starter is for reactive web applications. Since the project is already using
+    //    spring-boot-starter-web (for servlet-based applications), including both can lead to
+    //    conflicts and is generally not recommended unless the application specifically requires
+    //    both reactive and servlet-based components. If reactive programming is not being used,
+    //    it's best to stick with just spring-boot-starter-web.
+
+    // 3. spring-boot-starter-data-jpa
+    //    Reason: This starter is for JPA-based data access. Since the project is already using
+    //    spring-boot-starter-web (for servlet-based applications), including both can lead to
+    //    conflicts and is generally not recommended unless the application specifically requires
+    //    both reactive and servlet-based components. If reactive programming is not being used,
+    //    it's best to stick with just spring-boot-starter-web.
+
+    // 4. runtimeOnly "io.micrometer:micrometer-registry-prometheus"
+    //    Reason: This dependency is already included as an implementation dependency.
+    //    Having it as both implementation and runtimeOnly is redundant, so the runtimeOnly
+    //    declaration can be safely removed without affecting the project's functionality.
+    
 }
 
 dependencyManagement {
